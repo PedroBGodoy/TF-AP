@@ -5,19 +5,27 @@
 #include <ctype.h>
 #include <locale.h>
 
-#define VERMELHO "\033[0;31m"
-#define VERDE "\033[0;32m"
-#define RESET "\033[0m"
+//UTILIZAR COR SOMENTE SE A PLATAFORMA SUPORTAR, CASO CONTRARIO, COMENTE AS TRÊS LINHAS E TIRE O COMENTARIO DAS OUTRAS TRÊS
+//#define VERMELHO "\033[0;31m"
+//#define VERDE "\033[0;32m"
+//#define RESET "\033[0m"
+
+//TIRAR COMENTÁRIO CASO NÃO SEJA SUPORTADO AS CORES NA PLATAFORMA
+#define VERMELHO ""
+#define VERDE ""
+#define RESET ""
 
 void mostrarLinha(char letras[]);
 void mostrarForca(int *vida, char mensagem[], char tema[]);
-void mostrarResultado(int countPartidas, int vitoriasJogador1, int vitoriasJogador2);
-void leValidaTema(char tema[]);
-void leValidaPalavra(char palavra[]);
-void maisculo(char palavra[]);
-void toUnderline(char palavra[], int tamanho);
+void mostrarResultado(int countTotalRodadas, int countPartidas, int vitoriasJogador1, int vitoriasJogador2);
+void maiusculo(char palavra[]);
 
 int leVerificarLetra(char palavra[], char letras[]);
+int verificarTentativa(char palavra[]);
+int leValidaTema(char tema[]);
+int leValidaPalavra(char palavra[]);
+
+char verificaContinuar();
 
 int main(){
 	setlocale(LC_ALL , "Portuguese");
@@ -38,43 +46,65 @@ int main(){
 	int vitoriasJogador1 = 0;
 	int vitoriasJogador2 = 0;
 	
-	int countRodada   = 0;
-	int countPartidas = 1;
+	int countRodada   	  = 0;
+	int countTotalRodadas = 0;
+	int countPartidas 	  = 0;
 	
 	//LOOP PARA CONTINUAR O JOGO
 	do{
+		system("cls");
+		
 		printf("Vez do jogador %d!\n\n", jogador);
 		
+		//LE E VALIDA OS INPUTS INICINAIS
 		leValidaTema(tema);
 		leValidaPalavra(palavra);
-
-		maisculo(palavra);
-	
-		toUnderline(letras, strlen(palavra));
+		
+		//PEGAR CADA CARACTER E TRANSFORMAR EM UNDERLINE
+		for(i=0;i<strlen(palavra);i++){
+			letras[i] = '_';
+		}
 	
 		//LOOP PARA CONTINUAR A RODADA ATÉ O JOGADOR GANHAR OU PERDER
 		do {
 			mostrarForca(&vida, mensagem, tema);
 			mostrarLinha(letras);
 			
-			vida = leVerificarLetra(palavra, letras) == 1 ? vida-1 : vida;
+			int retorno = leVerificarLetra(palavra, letras);
 			
+			if(retorno == -1){
+				int tentativa = verificarTentativa(palavra);
+				if(tentativa == 1){
+					vitoria = 1;
+					strncpy(letras, palavra, 50);
+				}else{
+					vida = 0;
+				}
+				break;
+			}else{
+				vida = retorno == 1 ? vida-1 : vida;
+			}
+
 			vitoria = strcmp(palavra, letras) == 0 ? 1 : 0;
 		}while (vida > 0 && vitoria == 0);
 	
-		//ALTERA A MENSAGEM DE ACORDO COM O RESULTADO DA RODADA
-		vitoria == 1 ? strncpy(mensagem, VERDE"PARABÉNS! VOCÊ VENCEU."RESET, 50) : strncpy(mensagem, VERMELHO"VOCÊ PERDEU! TENTE NOVAMENTE."RESET, 50);
+		//MOSTRA O RESULTADO FINAL DA RODADA
+		if(vitoria == 1){
+			strncpy(mensagem, VERDE"PARABÉNS! VOCÊ VENCEU."RESET, 50);
+		}else{
+			strncpy(mensagem, VERMELHO"VOCÊ PERDEU! TENTE NOVAMENTE."RESET, 50);
+		}
 	
-		//VERIFICA O JOGADOR E ADICIONA O PONTO CASO TENHA VENCIDO A RODADA
-		if(jogador == 1)
+		//VERIFICA O JOGADOR E ADICIONA O PONTO CASO TENHA VENCIDO
+		if(jogador == 1){
 			vitoriasJogador1 += vitoria == 1 ? 1 : 0;
-		else
+			jogador = 2;
+		}else{
 			vitoriasJogador2 += vitoria == 1 ? 1 : 0;
-			
-		//TROCA O JOGADOR
-		jogador = jogador == 1 ? 2 : 1;
+			jogador = 1;
+		}
 	
-		//MOSTRA A FORCA NO FINAL DA RODADA
+	
 		mostrarForca(&vida, mensagem, tema);
 		if(vitoria == 1)
 			printf(VERDE);
@@ -82,18 +112,15 @@ int main(){
 		printf(RESET);
 		
 		printf("\n\n\n");
-		
+				
 		countRodada++;
+		countTotalRodadas++;
 		
-		//VERIFICA RODADA PARA CONTINUAR
+		//VERIFICA SE QUER CONTINUAR A CADA 2 RODADAS(1 PARTIDA)
 		if(countRodada >= 2){
-			countPartidas += 1;
+			countPartidas++;
 			
-			printf("Deseja continuar jogando (S - Sim, N - Não)? ");
-			scanf("%c", &continuar);
-			fflush(stdin);
-			
-			continuar = toupper(continuar);
+			continuar = verificaContinuar();
 			
 			countRodada = 0;
 		}else{
@@ -111,54 +138,41 @@ int main(){
 		vitoria = 0;
 		vida 	= 6;
 		i 		= 0;
-		
-		system("cls");
 	}while(continuar == 'S');
 
 	//MOSTRA O RESULTADO FINAL DA PARTIDA
-	mostrarResultado(countPartidas, vitoriasJogador1, vitoriasJogador2);
+	mostrarResultado(countTotalRodadas, countPartidas, vitoriasJogador1, vitoriasJogador2);
 	
 	getch();
 
 	return 0;
 }
 
-void leValidaTema(char tema[]){
-	printf("Insira um TEMA: ");
-	gets(tema);
-	fflush(stdin);
-}
-
-void leValidaPalavra(char palavra[]){
-	printf("Insira uma PALAVRA: ");
-	gets(palavra);
-	fflush(stdin);
-}
-
-void maisculo(char palavra[]){
-	int i;
+//TRANSFORMA A PALAVRA EM MAIUSCULA
+void maiusculo(char palavra[]){
+	int i = 0;
 	for(i=0;i < strlen(palavra);i++){
 		palavra[i] = toupper(palavra[i]);
 	}
 }
 
-void toUnderline(char palavra[], int tamanho){
-	int i;
-	for(i=0;i<tamanho;i++){
-		palavra[i] = '_';
-	}
-}
-
+//FUNCAO PARA LER E VERIFICAR A LETRA INSERIDA
 int leVerificarLetra(char palavra[], char letras[]) {
 	char letra;
 	int i = 0;
 	int count = 0;
+
+	printf("\nPara chutar Digite '='\n\n");
 
 	printf("Digite uma letra: ");
 	scanf("%c", &letra);
 	fflush(stdin);
 
 	letra = toupper(letra);
+
+	if(letra == '='){
+		return -1;
+	}
 
 	//LOOP ENTRE AS LETRAS DA PALAVRA COMPARANDO AO INPUT
 	for (i = 0; i < strlen(palavra); i++) {
@@ -169,15 +183,76 @@ int leVerificarLetra(char palavra[], char letras[]) {
 	}
 	
 	//SE O INPUT NAO ESTIVER NA PALAVRA RETORNA 1
-	return count == 0 ? 1 : 0;
+	if(count == 0){
+		return 1;
+	}else{
+		return 0;
+	}
+}
+
+//VERIFICA TENTATIVA DO JOGADOR
+int verificarTentativa(char palavra[]){
+	char tentativa[50];
+	
+	printf("Qual é a palavra? ");
+	gets(tentativa);
+	
+	maiusculo(tentativa);
+	
+	return strcmp(palavra, tentativa) == 0 ? 1 : 0;
+}
+
+//VERIFICA SE O INPUT DO TEMA ESTA CORRETO
+int leValidaTema(char tema[]){
+	do{
+		printf("Insira um TEMA: ");
+		gets(tema);
+		fflush(stdin);
+			
+		if(strlen(tema) < 3){
+			printf("O TEMA deve conter no mínimo 3 caracteres!\n\n");
+		}
+	}while(strlen(tema) < 3);
+	
+	return 0;
+}
+
+//VERIFICA SE O INPUT DA PALAVRA ESTA CORRETA
+int leValidaPalavra(char palavra[]){
+	do{
+		printf("Insira uma PALAVRA: ");
+		gets(palavra);
+		fflush(stdin);
+		
+		if(strlen(palavra) < 3){
+			printf("A PALAVRA deve conter no mínimo 3 caracteres!\n\n");
+		}
+	}while(strlen(palavra) < 3);
+
+	maiusculo(palavra);
+	
+	return 0;
+}
+
+//VERIFICA SE O JOGADOR DESEJA CONTINUAR JOGANDO
+char verificaContinuar(){
+	char continuar;
+	
+	printf("Deseja continuar jogando (S - Sim, N - Não)? ");
+	scanf("%c", &continuar);
+	fflush(stdin);
+	
+	continuar = toupper(continuar);
+	
+	return continuar;
 }
 
 //FUNCAO PARA MOSTRAR A LINHA COM AS CASAS PARA VAZIAS OU COM LETRAS
 void mostrarLinha(char letras[]) {
 	int i;
-
+	
 	for (i = 0; i < strlen(letras); i++) {
-		printf("%c ", letras[i]);
+		printf("%c  ", letras[i]);
 	}
 	
 	printf("\n");
@@ -185,82 +260,101 @@ void mostrarLinha(char letras[]) {
 
 //FUNCAO PARA MOSTRAR FORCA COM BASE NA VIDA E MENSAGEM
 void mostrarForca(int *vida, char mensagem[], char tema[]) {
+	//LIMPA A TELA
 	system("cls");
 
 	switch (*vida) {
 		case 0:
-			printf("____	\n");
-			printf("|   |   Tema: %s\n", tema);
-			printf("|"VERMELHO"   o		"RESET"\n");
-			printf("|"VERMELHO"  /|\\   "RESET"  %s\n", mensagem);
-			printf("|"VERMELHO"  / \\ 	"RESET"\n");
+			printf("_______	\n");
+			printf("|      |       Tema: %s\n", tema);
+			printf("|"VERMELHO"      o		"RESET"\n");
+			printf("|"VERMELHO"     /|\\   "RESET"  %s\n", mensagem);
+			printf("|"VERMELHO"     / \\ 	"RESET"\n");
 			printf("|       \n");
+			printf("|		\n");
+			printf("|		\n");
 			printf("| ");
 			break;
 		case 1:
-			printf("____    \n");
-			printf("|   |   Tema: %s\n", tema);
-			printf("|   o   \n");
-			printf("|  /|\\ 	%s\n", mensagem);
-			printf("|  /    \n");
+			printf("_______    \n");
+			printf("|      |       Tema: %s\n", tema);
+			printf("|      o   \n");
+			printf("|     /|\\ 	%s\n", mensagem);
+			printf("|     /    \n");
 			printf("|       \n");
+			printf("|		\n");
+			printf("|		\n");
 			printf("| ");
 			break;
 		case 2:
-			printf("____    \n");
-			printf("|   |   Tema: %s\n", tema);
-			printf("|   o	\n");
-			printf("|  /|\\		%s\n", mensagem);
+			printf("_______    \n");
+			printf("|      |       Tema: %s\n", tema);
+			printf("|      o	\n");
+			printf("|     /|\\		%s\n", mensagem);
+			printf("|		\n");
+			printf("|		\n");
 			printf("|		\n");
 			printf("|		\n");
 			printf("| ");
 			break;
 		case 3:
-			printf("____	\n");
-			printf("|   |   Tema: %s\n", tema);
-			printf("|   o	\n");
-			printf("|  /|		%s\n", mensagem);
+			printf("_______	\n");
+			printf("|      |       Tema: %s\n", tema);
+			printf("|      o	\n");
+			printf("|     /|		%s\n", mensagem);
+			printf("|		\n");
+			printf("|		\n");
 			printf("|		\n");
 			printf("|		\n");
 			printf("| ");
 			break;
 		case 4:
-			printf("____	\n");
-			printf("|   |   Tema: %s\n", tema);
-			printf("|   o	\n");
-			printf("|   |		%s\n", mensagem);
+			printf("_______	\n");
+			printf("|      |       Tema: %s\n", tema);
+			printf("|      o	\n");
+			printf("|      |		%s\n", mensagem);
+			printf("|		\n");
+			printf("|		\n");
 			printf("|		\n");
 			printf("|		\n");
 			printf("| ");
 			break;
 		case 5:
-			printf("____	\n");
-			printf("|   |   Tema: %s\n", tema);
-			printf("|   o	\n");
+			printf("_______	\n");
+			printf("|      |       Tema: %s\n", tema);
+			printf("|      o	\n");
 			printf("|			%s\n", mensagem);
+			printf("|		\n");
+			printf("|		\n");
 			printf("|		\n");
 			printf("|		\n");
 			printf("| ");
 			break;
 		case 6:
-			printf("____	\n");
-			printf("|   |   Tema: %s\n", tema);
+			printf("_______	\n");
+			printf("|      |       Tema: %s\n", tema);
 			printf("|		\n");
 			printf("|			%s\n", mensagem);
 			printf("|		\n");
 			printf("|		\n");
+			printf("|		\n");
+			printf("|		\n");
 			printf("| ");
 			break;
+
 	}
 }
 
-void mostrarResultado(int countPartidas, int vitoriasJogador1, int vitoriasJogador2){
+void mostrarResultado(int countTotalRodadas, int countPartidas, int vitoriasJogador1, int vitoriasJogador2){
 	system("cls");
 	
-	printf("Quantidade de Partidas: %d\n\n", countPartidas);
+	printf("Quantidade de Partidas: %d\n", countPartidas);
+	printf("Quantidade de Rodadas: %d\n", countTotalRodadas);
+	
+	printf("\n");
 
 	printf("========= PLACAR =========\n");
-	printf("Vitorias\n");
+	printf("Acertos\n");
 	printf("Jogador 1: %d\n", vitoriasJogador1);
 	printf("Jogador 2: %d\n", vitoriasJogador2);
 	printf("==========================");
