@@ -6,20 +6,25 @@
 #include <locale.h>
 
 //UTILIZAR COR SOMENTE SE A PLATAFORMA SUPORTAR, CASO CONTRARIO, COMENTE AS TRÊS LINHAS E TIRE O COMENTARIO DAS OUTRAS TRÊS
-//#define VERMELHO "\033[0;31m"
-//#define VERDE "\033[0;32m"
-//#define RESET "\033[0m"
+#define VERMELHO "\033[0;31m"
+#define VERDE "\033[0;32m"
+#define RESET "\033[0m"
 
 //TIRAR COMENTÁRIO CASO NÃO SEJA SUPORTADO AS CORES NA PLATAFORMA
-#define VERMELHO ""
-#define VERDE ""
-#define RESET ""
+//#define VERMELHO ""
+//#define VERDE ""
+//#define RESET ""
 
 void mostrarLinha(char letras[]);
-void mostrarForca(int *vida, char mensagem[], char tema[]);
+void mostrarForca(int vida, char mensagem[], char tema[]);
 void mostrarResultado(int countTotalRodadas, int countPartidas, int vitoriasJogador1, int vitoriasJogador2);
 void maiusculo(char palavra[]);
+void mensagemResultado(char mensagem[], int vitoria);
+void verificaVitoriaJogador(int *jogador, int vitoria, int *vitoriasJogador1, int *vitoriasJogador2);
+void mostrarResultadoRodada(int vida, char mensagem[], char tema[], char palavra[], char letras[], int vitoria);
+void verificaContinuarRodada(int *countRodada, int *countPartidas, char *continuar);
 
+int loopRodada(int vida, char mensagem[], char tema[], char palavra[], char letras[]);
 int leVerificarLetra(char palavra[], char letras[]);
 int verificarTentativa(char palavra[]);
 int leValidaTema(char tema[]);
@@ -64,52 +69,18 @@ int main(){
 		for(i=0;i<strlen(palavra);i++){
 			letras[i] = '_';
 		}
-	
-		//LOOP PARA CONTINUAR A RODADA ATÉ O JOGADOR GANHAR OU PERDER
-		do {
-			mostrarForca(&vida, mensagem, tema);
-			mostrarLinha(letras);
-			
-			int retorno = leVerificarLetra(palavra, letras);
-			
-			if(retorno == -1){
-				int tentativa = verificarTentativa(palavra);
-				if(tentativa == 1){
-					vitoria = 1;
-					strncpy(letras, palavra, 50);
-				}else{
-					vida = 0;
-				}
-				break;
-			}else{
-				vida = retorno == 1 ? vida-1 : vida;
-			}
-
-			vitoria = strcmp(palavra, letras) == 0 ? 1 : 0;
-		}while (vida > 0 && vitoria == 0);
+		
+		//LOOP DAS RODADAS
+		vitoria = loopRodada(vida, mensagem, tema, palavra, letras);
 	
 		//MOSTRA O RESULTADO FINAL DA RODADA
-		if(vitoria == 1){
-			strncpy(mensagem, VERDE"PARABÉNS! VOCÊ VENCEU."RESET, 50);
-		}else{
-			strncpy(mensagem, VERMELHO"VOCÊ PERDEU! TENTE NOVAMENTE."RESET, 50);
-		}
+		mensagemResultado(mensagem, vitoria);
 	
 		//VERIFICA O JOGADOR E ADICIONA O PONTO CASO TENHA VENCIDO
-		if(jogador == 1){
-			vitoriasJogador1 += vitoria == 1 ? 1 : 0;
-			jogador = 2;
-		}else{
-			vitoriasJogador2 += vitoria == 1 ? 1 : 0;
-			jogador = 1;
-		}
+		verificaVitoriaJogador(&jogador, vitoria, &vitoriasJogador1, &vitoriasJogador2);
 	
-	
-		mostrarForca(&vida, mensagem, tema);
-		if(vitoria == 1)
-			printf(VERDE);
-		mostrarLinha(letras);
-		printf(RESET);
+		//MOSTRA RESULTADO DA RODADA
+		mostrarResultadoRodada(vida, mensagem, tema, palavra, letras, vitoria);
 		
 		printf("\n\n\n");
 				
@@ -117,17 +88,7 @@ int main(){
 		countTotalRodadas++;
 		
 		//VERIFICA SE QUER CONTINUAR A CADA 2 RODADAS(1 PARTIDA)
-		if(countRodada >= 2){
-			countPartidas++;
-			
-			continuar = verificaContinuar();
-			
-			countRodada = 0;
-		}else{
-			printf("Precione qualquer tecla para continuar!");
-			getch();
-			continuar = 'S';
-		}
+		verificaContinuarRodada(&countRodada, &countPartidas, &continuar);
 		
 		//RESETA AS VARIAVEIS
 		memset(palavra, 0, sizeof(palavra));
@@ -146,6 +107,67 @@ int main(){
 	getch();
 
 	return 0;
+}
+
+int loopRodada(int vida, char mensagem[], char tema[], char palavra[], char letras[]){
+	int vitoria = 0;
+	
+	//LOOP PARA CONTINUAR A RODADA ATÉ O JOGADOR GANHAR OU PERDER
+	do {
+		mostrarForca(vida, mensagem, tema);
+		mostrarLinha(letras);
+		
+		int retorno = leVerificarLetra(palavra, letras);
+		
+		if(retorno == -1){
+			int tentativa = verificarTentativa(palavra);
+			if(tentativa == 1){
+				vitoria = 1;
+				strncpy(letras, palavra, 50);
+			}else{
+				vida = 0;
+			}
+			break;
+		}else{
+			vida = retorno == 1 ? vida-1 : vida;
+		}
+
+		vitoria = strcmp(palavra, letras) == 0 ? 1 : 0;
+	}while (vida > 0 && vitoria == 0);
+	
+	return vitoria;
+}
+
+void mensagemResultado(char mensagem[], int vitoria){
+	if(vitoria == 1){
+		strncpy(mensagem, VERDE"PARABÉNS! VOCÊ VENCEU."RESET, 50);
+	}else{
+		strncpy(mensagem, VERMELHO"VOCÊ PERDEU! TENTE NOVAMENTE."RESET, 50);
+	}
+}
+
+void verificaVitoriaJogador(int *jogador, int vitoria, int *vitoriasJogador1, int *vitoriasJogador2){
+	if(*jogador == 1){
+		*vitoriasJogador1 += vitoria == 1 ? 1 : 0;
+		*jogador = 2;
+	}else{
+		*vitoriasJogador2 += vitoria == 1 ? 1 : 0;
+		*jogador = 1;
+	}
+}
+
+void verificaContinuarRodada(int *countRodada, int *countPartidas, char *continuar){
+	if(*countRodada >= 2){
+		*countPartidas += 1;
+		
+		*continuar = verificaContinuar();
+		
+		*countRodada = 0;
+	}else{
+		printf("Precione qualquer tecla para continuar!");
+		getch();
+		*continuar = 'S';
+	}
 }
 
 //TRANSFORMA A PALAVRA EM MAIUSCULA
@@ -259,11 +281,11 @@ void mostrarLinha(char letras[]) {
 }
 
 //FUNCAO PARA MOSTRAR FORCA COM BASE NA VIDA E MENSAGEM
-void mostrarForca(int *vida, char mensagem[], char tema[]) {
+void mostrarForca(int vida, char mensagem[], char tema[]) {
 	//LIMPA A TELA
 	system("cls");
 
-	switch (*vida) {
+	switch (vida) {
 		case 0:
 			printf("_______	\n");
 			printf("|      |       Tema: %s\n", tema);
@@ -343,6 +365,15 @@ void mostrarForca(int *vida, char mensagem[], char tema[]) {
 			break;
 
 	}
+}
+
+//FUNÇÃO PARA MOSTRAR FORCA E LINHA COM BASE NA VITORIA
+void mostrarResultadoRodada(int vida, char mensagem[], char tema[], char palavra[], char letras[], int vitoria){
+	mostrarForca(vida, mensagem, tema);
+	if(vitoria == 1)
+		printf(VERDE);
+	mostrarLinha(letras);
+	printf(RESET);
 }
 
 void mostrarResultado(int countTotalRodadas, int countPartidas, int vitoriasJogador1, int vitoriasJogador2){
