@@ -22,7 +22,7 @@ void maiusculo(char palavra[]);
 void mensagemResultado(char mensagem[], int vitoria);
 void verificaVitoriaJogador(int *jogador, int vitoria, int *vitoriasJogador1, int *vitoriasJogador2);
 void mostrarResultadoRodada(int vida, char mensagem[], char tema[], char palavra[], char letras[], int vitoria);
-void verificaContinuarRodada(int *countRodada, int *countPartidas, char *continuar);
+void verificaContinuarRodada(int *countRodada, int *countPartidas, char *continuar, int *countTotalRodadas);
 
 int loopRodada(int vida, char mensagem[], char tema[], char palavra[], char letras[]);
 int leVerificarLetra(char palavra[], char letras[]);
@@ -35,6 +35,7 @@ char verificaContinuar();
 int main(){
 	setlocale(LC_ALL , "Portuguese");
 	
+	//DECLARAÇÃO DE VARIÁVEIS
 	char continuar = 'N';
 	
 	char palavra[50]  = "";
@@ -81,14 +82,9 @@ int main(){
 	
 		//MOSTRA RESULTADO DA RODADA
 		mostrarResultadoRodada(vida, mensagem, tema, palavra, letras, vitoria);
-		
-		printf("\n\n\n");
-				
-		countRodada++;
-		countTotalRodadas++;
-		
+
 		//VERIFICA SE QUER CONTINUAR A CADA 2 RODADAS(1 PARTIDA)
-		verificaContinuarRodada(&countRodada, &countPartidas, &continuar);
+		verificaContinuarRodada(&countRodada, &countPartidas, &continuar, &countTotalRodadas);
 		
 		//RESETA AS VARIAVEIS
 		memset(palavra, 0, sizeof(palavra));
@@ -109,6 +105,7 @@ int main(){
 	return 0;
 }
 
+//LOOP PRINCIPAL DAS RODADAS
 int loopRodada(int vida, char mensagem[], char tema[], char palavra[], char letras[]){
 	int vitoria = 0;
 	
@@ -138,6 +135,7 @@ int loopRodada(int vida, char mensagem[], char tema[], char palavra[], char letr
 	return vitoria;
 }
 
+//FUNÇÃO PARA CONSTRUIR MENSAGEM DE VITORIO OU DERROTA
 void mensagemResultado(char mensagem[], int vitoria){
 	if(vitoria == 1){
 		strncpy(mensagem, VERDE"PARABÉNS! VOCÊ VENCEU."RESET, 50);
@@ -146,6 +144,7 @@ void mensagemResultado(char mensagem[], int vitoria){
 	}
 }
 
+//FUNÇÃO PARA VERIFICAR QUAL JOGADOR FOI VITORIOSO E ADICIONAR UM PONTO
 void verificaVitoriaJogador(int *jogador, int vitoria, int *vitoriasJogador1, int *vitoriasJogador2){
 	if(*jogador == 1){
 		*vitoriasJogador1 += vitoria == 1 ? 1 : 0;
@@ -156,7 +155,10 @@ void verificaVitoriaJogador(int *jogador, int vitoria, int *vitoriasJogador1, in
 	}
 }
 
-void verificaContinuarRodada(int *countRodada, int *countPartidas, char *continuar){
+//FUNÇÃO PARA VERIFICAR E FAZER A CONTAGEM DE PARTIDAS E RODADAS
+void verificaContinuarRodada(int *countRodada, int *countPartidas, char *continuar, int *countTotalRodadas){
+	*countRodada += 1;
+	*countTotalRodadas += 1;
 	if(*countRodada >= 2){
 		*countPartidas += 1;
 		
@@ -188,8 +190,8 @@ int leVerificarLetra(char palavra[], char letras[]) {
 
 	printf("Digite uma letra: ");
 	scanf("%c", &letra);
-	fflush(stdin);
-
+	fflush(stdin);	
+	
 	letra = toupper(letra);
 
 	if(letra == '='){
@@ -369,6 +371,7 @@ void mostrarForca(int vida, char mensagem[], char tema[]) {
 
 //FUNÇÃO PARA MOSTRAR FORCA E LINHA COM BASE NA VITORIA
 void mostrarResultadoRodada(int vida, char mensagem[], char tema[], char palavra[], char letras[], int vitoria){
+	printf("\n\n\n");
 	mostrarForca(vida, mensagem, tema);
 	if(vitoria == 1)
 		printf(VERDE);
@@ -376,6 +379,7 @@ void mostrarResultadoRodada(int vida, char mensagem[], char tema[], char palavra
 	printf(RESET);
 }
 
+//FUNÇÃO PARA MOSTRAR O RESULTADO FINAL DA PARTIDA
 void mostrarResultado(int countTotalRodadas, int countPartidas, int vitoriasJogador1, int vitoriasJogador2){
 	system("cls");
 	
